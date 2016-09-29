@@ -1,0 +1,24 @@
+http://www.mathworks.com/help/nnet/gs/fit-data-with-a-neural-network.html
+
+2. nenastavovat vahy neuronov, siet to spravi sama.
+1skryta vrstva MLP siete(treba otestovat aky je idealny pocet neuronov v skrytej vrstve)
+
+3.trenovanie
+1.80% trenovacie udaje
+2.10% validacia - udaje ktore neboli pouzite pri trenovani, siet ich nepozna
+3.10% testovacie udaje - siet ich nepozna
+1.az 3 krok sa vola cross validacia
+
+4.trenovanie MPL siete nastavuju sa vahy
+
+7.chyba na trenovacej a validacnej mnozine
+
+8. konfiguracia: 1neuron, 3neurony, 100neronov v skrytej vrstve. 
+a)Pocet neuronov, b) zmena aktivacnej funkcie, c) zmena trenovacej funckie
+
+Pri RBF sieti sa nenastavuje pocet neuronov - pridava sama neurony a prestane ked stredna chyba presiahne nejaku hranicu(nami stanovenu) - pridavame len nami stanovenu chybu,
+
+4. Pri RBF uz nemusim davat rozdelenie na 80,10,10
+nerobim graf s vyvojom validacnej a trenovacej chyby!
+
+6. zmena konfiguracie: len pozadovana chyba

@@ -1,0 +1,81 @@
+SUNS 2015, Zadanie č.1 - "Každý študent bude mať pridelenú vlastnú funkciu (konkrétne jej graf), kporú bude aproximovať..."
+Vizualizácia cez http://rechneronline.de/funktionsgraphen/ . Nezabudnite zmeniť Werte x-Achse: a Werte y-Achse: od -10 po 10.
+
+Obr. 7: Funckia 1
+	(x)^2*0.25 + cos(10x); x od -10 po 10
+
+Obr. 8: Funckia 2
+	-(2^x); x od -10 po 10
+
+Obr. 9: Funckia 3
+	(x+6)^2; x od -9 po -3
+	(x)^2; x od -3 po -3
+	(x-6)^2; x od 3 po 9
+	alebo
+	-abs(cos(x * 0.523)*9)+9; x od -9 po 9
+
+Obr. 10: Funckia 4
+	-(x+6)^2; x od -9 po -3
+	-(x^2); x od -3 po -3
+	-(x-6)^2; x od 3 po 9
+
+Obr. 11: Funckia 5
+	e^x; x od -10 po 0
+	cos(x); x od 0 po 10
+
+Obr. 12: Funckia 6
+	e^x; x od -10 po 0
+	e^(x/1.45);  x od 0 po 10
+
+Obr. 13: Funckia 7
+	sin(x*0.5)*10; x od -10 po 10
+
+Obr. 14: Funckia 8
+	abs(cos(x)); x od -10 po 10
+
+Obr. 15: Funckia 9
+	abs(sin(x)); x od -10 po 10
+
+Obr. 16: Funckia 10
+	-x; x od -10 po 0
+	x; x od 0 po 10
+    alebo
+	sqr(x^2); x od -10 po 10
+
+Obr. 17: Funckia 11
+	log(x); x od 0 po 10
+
+Obr. 18: Funckia 12
+	sin(2x) - 5; x od -10 po -1.57
+	3.1x; x od -1.6 po 1.6
+	sin(2x) + 5; x od 1.57 po 10
+
+Obr. 19: Funckia 13
+	sin(x); x od -10 po 0
+	x; x od 0 po 10
+
+Obr. 20: Funckia 14
+	sin(x) + x; x od -10 po 10
+
+Obr. 21: Funckia 15
+	sin(x) - x; x od -10 po 10
+
+Obr. 22: Funckia 16
+	x^(1/3); x od -10 po 10
+
+Obr. 23: Funckia 17
+	x; x od -10 po 0
+	sin(x); x od 0 po 10
+
+Obr. 24: Funckia 18
+	x^3; x od -3 po 3(presnejsie ~x od -2.154434698 po 2.154434698)
+
+Obr. 25: Funckia 19
+	x+5; x od -10 po -3
+	2; x od -3 po 3
+	x-1; x od 3 po 10
+	
+Obr. 26: Funckia 20
+	-x-4.7; x od -10 po -4.7
+	cos(x); x od -4.7 po 4.7
+	x - 4.7; x od 4.7 po 10
