@@ -2,6 +2,22 @@
  * Maroš Polák
  *
  * Some basic synchronizations patterns from book Little Book of Semaphores by Allen B. Downey
+ * compile:
+ 	gcc -Wall -pthread -o basic basic-patterns.c
+ 	./basic [number-of-pattern-example]
+
+ 	case 1:
+		signaling();
+	case 2:
+		rendezvous();
+	case 3:
+		mutex();
+	case 4:
+		multiplex();
+	case 5:
+		barrier();
+	case 6:
+		queue();
  */
 
 #include <assert.h>
@@ -46,12 +62,12 @@ void *_1worker_b(void *arg)
 void signaling(void)
 {
 	int i,
-		threads_count = 0;
+		threads_count = 2;
 	assert( sem_init(&s_semaphore, 1, 0) == 0 );
 
 	for( i = 0; i < threads_count; ++i )
 	{
-		if( i )			
+		if( i % 2 )			
 			assert( pthread_create(&t_pool[i], NULL, _1worker_a, NULL) == 0 );
 		else
 			assert( pthread_create(&t_pool[i], NULL, _1worker_b, NULL) == 0 );
@@ -323,7 +339,8 @@ int count_of_a = 0, // leader
 
 void dance(void)
 {
-	sleep((rand() % 5) + 1);
+	sleep((rand() % 3) + 1);
+	printf("Abba - Dancing Queen: You can dance, you can jive, having the time of your life...\n");
 }
 
 void *_8worker_a(void *arg)
@@ -412,7 +429,10 @@ void queue(void)
 
 int main(int argc, char **argv)
 {
-	int u_choice = 6;
+	int u_choice = 4;
+
+	if( argc > 1 )
+		sscanf(argv[1], "%d", &u_choice); // or strtol
 
 	switch( u_choice )
 	{
