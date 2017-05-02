@@ -1,0 +1,206 @@
+synchronizacia sa vykonava pomocou notifikacii
+
+Two events are concurrent if we cannot tell by looking at the program which will happen first.
+An operation that cannot be interrupted is said to be atomic.
+
+.wait 	== sem_wait()
+.signal == sem_post()
+
+
+
+serializacia(pomocou poslania spravy): udalost A sa musi vykonat pred udalostou B
+semafor = sem(0)
+
+thread A				thread B
+a1						semafor.wait()
+semafor.signal()		b2
+
+
+vzajomne vylucenie(mutual exclusion - mutex): udalost A a B sa nesmu vykonat v tom istom case
+mut = sem(1)
+counter = 0
+
+thread A				thread B
+mut.wait()				mut.wait()
+counter = counter + 1	counter = counter + 1
+mut.signal()			mut.signal()
+
+
+rande: udalost a1 sa musi vykonat pred udalostou b2 a udalost b1 sa ma vykonat pred a2: a1 < b1 < a2 < b2 || b1 < a1 < a2 < b2 || a1 < b1 <  b2 < a2 || b1 < a1 < b2 < a2
+Aready = sem(0)
+Bready = sem(0)
+
+thread A				thread B
+a1						b1
+Aready.signal()			Bready.signal()
+Bready.wait()			Aready.wait()
+a2						b2
+
+
+multiplex: viacero - N vlakien moze vstupit do kritickej oblasti - CS
+s = sem(N)
+
+thread A 				thread B 				thread C 			... 			thread N 		thread N + 1 		thread N + 2
+s.wait()				s.wait()				s.wait()			s.wait()		s.wait()		s.wait()			s.wait()
+CS()					CS()					CS()				CS()			CS()			CS()				CS()
+s.signal()				s.signal()				s.signal()			s.signal()		s.signal()		s.signal()			s.signal()
+
+
+bariera: je rande s viacerymi > 2 vlaknami, poziadvka je aby ziadne vlakno nevykonalo CS kym vsetky vlakna nemali rande
+Aready 		= sem(0)
+Bready 		= sem(0)
+
+N = celkovy pocet vlakien
+mut    		= sem(1)
+turnstile 	= sem(0)
+count  		= 0 // pocet vlakien ktore uz mali rande
+
+thread A				thread B
+// rande zaciatok
+a1						b1
+Aready.signal()			Bready.signal()
+Bready.wait()			Aready.wait()
+// rande koniec
+
+			mut.wait()
+				count = count + 1
+				if count == N:
+					turnstile.signal()
+			mut.signal()
+
+			// prvych count - 1 vlakien bude zablokovanych
+			turnstile.wait()
+			CS()
+			turnstile.signal()
+
+th1, th2
+th1: sem = -1
+th2 count == N: sem = 0
+th1: sem = 1
+th2: sem = 0
+th2: sem = 1
+////////////////////////////////////////
+thread A					thread B
+while(True):
+	// rande zaciatok
+	a1						b1
+	Aready.signal()			Bready.signal()
+	Bready.wait()			Aready.wait()
+	// rande koniec
+
+				mut.wait()
+					count = count + 1
+					if count == N:
+						turnstile.signal()
+				mut.signal()
+
+				// prvych count - 1 vlakien bude zablokovanych
+				turnstile.wait()
+				CS()
+				turnstile.signal()
+
+				// znovu pouzitelna bariera
+				// problem ale nastane ze mozu vlakna prebehnut cely cyklus bez toho aby sa pockali
+				mut.wait()
+					count = count - 1
+					if count == 0:
+						turnstile.wait()
+				mut.signal()
+
+
+znovupouzitelna bariera v cykle:
+Aready 		= sem(0)
+Bready 		= sem(0)
+
+N = celkovy pocet vlakien
+mut    		= sem(1)
+turnstile 	= sem(0)
+turnstile2 	= sem(1)
+count  		= 0 // pocet vlakien ktore uz mali rande
+
+thread A					thread B
+while(True):
+	// rande zaciatok
+	a1						b1
+	Aready.signal()			Bready.signal()
+	Bready.wait()			Aready.wait()
+	// rande koniec
+
+				mut.wait()
+					count = count + 1
+					if count == N:
+						turnstile.signal()
+						turnsitle2.wait()
+				mut.signal()
+
+				// cakanie na vsetky vlakna
+				// prvych count - 1 vlakien bude zablokovanych
+				turnstile.wait()
+				turnstile.signal()
+				CS()
+
+				// znovu pouzitelna bariera
+				// problem ale nastane ze mozu vlakna prebehnut cely cyklus bez toho aby sa pockali
+				mut.wait()
+					count = count - 1
+					if count == 0:
+						turnstile.wait()
+						turnsitle2.signal()
+				mut.signal()
+
+				// cakanie kym vsetky vlakna vykonaju CS
+				turnsitle2.wait()
+				turnsitle2.signal()
+
+znovupouzitelna bariera v cykle v2:
+Aready 		= sem(0)
+Bready 		= sem(0)
+
+N = celkovy pocet vlakien
+mut    		= sem(1)
+turnstile 	= sem(0)
+turnstile2 	= sem(0)
+count  		= 0 // pocet vlakien ktore uz mali rande
+
+thread A					thread B
+while(True):
+	// rande zaciatok
+	a1						b1
+	Aready.signal()			Bready.signal()
+	Bready.wait()			Aready.wait()
+	// rande koniec
+
+				mut.wait()
+					count = count + 1
+					if count == N:
+						turnstile.signal(N)
+				mut.signal()
+
+				// cakanie na vsetky vlakna
+				// prvych count - 1 vlakien bude zablokovanych
+				turnstile.wait()
+				CS()
+
+				// znovu pouzitelna bariera
+				// problem ale nastane ze mozu vlakna prebehnut cely cyklus bez toho aby sa pockali
+				mut.wait()
+					count = count - 1
+					if count == 0:
+						turnsitle2.signal(N)
+				mut.signal()
+
+				// cakanie kym vsetky vlakna vykonaju CS
+				turnsitle2.wait()
+
+
+fronta(pomocou semaforov): nie je mozne vykonat signal() pokial nejake vlakno caka
+men 	= women 	= 0
+mQueue 	= sem(0) // leader
+wQueue 	= sem(0) // follower
+mut 	= sem(1)
+rande	= sem(0)
+
+Thread man			Thread woman
+wQueue.signal()		mQueue.signal()
+mQueue.wait()		wQueue.wait()
+dance_floor()		dance_floor()
