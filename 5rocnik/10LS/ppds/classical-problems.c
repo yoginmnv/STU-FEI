@@ -11,10 +11,11 @@
 	case 2:
 		readers_writers();
 	case 3:
-		
+		dining_philosophers();
 	case 4:
-		
+		dining_philosophers_tanenbaum();
 	case 5:
+		cigarette_smokers();
  */
 
 #include <assert.h>
@@ -423,7 +424,7 @@ void dining_philosophers_tanenbaum()
 
 /* 4.5 Cigarette smokers problem START*/
 /*
- *
+ * Agenti vytvaraju zdroje, pusheri cakaju na zdroje a nasledne ich predavaju fajciarom
  */
 #define SMOKERS_COUNT 3
 sem_t 	s_agent,
@@ -444,6 +445,16 @@ int is_tobacco 	= 0,
 sem_t 	s_pusher_tobacco,
 		s_pusher_paper,
 		s_pusher_matches;
+
+void make_cigarette(int i)
+{
+	printf("%s: Smoker %d making cigarette\n", __FUNCTION__, i);
+}
+
+void smoke(int i)
+{
+	printf("%s: Smoker %d is smoking\n", __FUNCTION__, i);
+}
 
 void *_5worker_agent(void *arg)
 {
@@ -555,16 +566,6 @@ void *_5worker_pusher(void *arg)
 	}
 
 	pthread_exit((void*) 0);
-}
-
-void make_cigarette(int i)
-{
-	printf("%s: Smoker %d making cigarette\n", __FUNCTION__, i);
-}
-
-void smoke(int i)
-{
-	printf("%s: Smoker %d is smoking\n", __FUNCTION__, i);
 }
 
 void *_5worker_smoker(void *arg)
