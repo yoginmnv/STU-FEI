@@ -30,7 +30,10 @@ void ls_unlock(LIGHT_SWITCH *ls, sem_t *semaphore)
 
 void ls_free(LIGHT_SWITCH *ls)
 {
-	assert( sem_destroy(&ls->s_mutex) == 0 );
-	free((void*)ls);
-	ls = NULL;
+	if( ls != NULL )
+	{
+		assert( sem_destroy(&ls->s_mutex) == 0 );
+		free((void*)ls);
+		ls = NULL;
+	}
 }

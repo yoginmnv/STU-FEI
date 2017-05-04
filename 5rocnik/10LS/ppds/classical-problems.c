@@ -433,6 +433,7 @@ void dining_philosophers_tanenbaum()
  */
 #define SMOKERS_COUNT 3
 sem_t 	s_agent,
+		s_signal,
 		s_tobacco,
 		s_paper,
 		s_matches;
@@ -451,25 +452,34 @@ sem_t 	s_pusher_tobacco,
 		s_pusher_paper,
 		s_pusher_matches;
 
-void make_cigarette(int i)
+void make_cigarette()
 {
-	printf("%s: Smoker %d making cigarette\n", __FUNCTION__, i);
+	printf("%s: Smoker %lu making cigarette\n", __FUNCTION__, pthread_self());
 }
 
-void smoke(int i)
+void smoke()
 {
-	printf("%s: Smoker %d is smoking\n", __FUNCTION__, i);
+	printf("%s: Smoker %lu is smoking\n", __FUNCTION__, pthread_self());
 }
 
 void *_5worker_agent(void *arg)
 {
+	int type = *(int*)arg;
+	assert( sem_post(&s_signal) == 0 );
 	while( 1 )
 	{
-		switch( *(int*)arg )
+		assert( sem_wait(&s_mutex) == 0 );
+		printf("%s %d\n", __FUNCTION__, type);
+		switch( type )
 		{
 			/*
 			 * aspon jeden agent zbehne a doda zdroje fajciarom a potom caka kym ho nejaky fajciar nevyzve
 			 */
+			case MATCHES:
+				assert( sem_wait(&s_agent) == 0 );
+				assert( sem_post(&s_tobacco) == 0 );
+				assert( sem_post(&s_paper) == 0 );
+				break;
 			case TOBACCO:
 				assert( sem_wait(&s_agent) == 0 );
 				assert( sem_post(&s_paper) == 0 );
@@ -480,25 +490,72 @@ void *_5worker_agent(void *arg)
 				assert( sem_post(&s_tobacco) == 0 );
 				assert( sem_post(&s_matches) == 0 );
 				break;
-			case MATCHES:
-				assert( sem_wait(&s_agent) == 0 );
-				assert( sem_post(&s_tobacco) == 0 );
-				assert( sem_post(&s_paper) == 0 );
-				break;
 			default:
 				printf("%s\n", "Unsported ingredient");
 				pthread_exit((void*) 0);
 		}
+		assert( sem_post(&s_mutex) == 0 );
+		sleep((rand() % 5) + 1);
+	}
+}
+void *_5worker_agent_a(void *arg) {
+	while(1){
+		assert( sem_wait(&s_agent) == 0 );
+		assert( sem_post(&s_tobacco) == 0 );
+		assert( sem_post(&s_paper) == 0 );
+		sleep(rand()%10);
+	}
+}
+void *_5worker_agent_b(void *arg) {
+	while(1){
+		assert( sem_wait(&s_agent) == 0 );
+		assert( sem_post(&s_paper) == 0 );
+		assert( sem_post(&s_matches) == 0 );
+		sleep(rand()%10);
+	}
+}
+void *_5worker_agent_c(void *arg) {
+	while(1){
+		assert( sem_wait(&s_agent) == 0 );
+		assert( sem_post(&s_tobacco) == 0 );
+		assert( sem_post(&s_matches) == 0 );
+		sleep(rand()%10);
 	}
 }
 
 void *_5worker_pusher(void *arg)
 {
+	int type = *(int*)arg;
+	assert( sem_post(&s_signal) == 0 );
 	while( 1 )
-	{
-		switch( *(int*)arg )
+	{	
+		switch( type )
 		{
+		case MATCHES: // MATCHES
+			printf("%s %d\n", __FUNCTION__, type);
+			assert( sem_wait(&s_matches) == 0 );
+
+			assert( sem_wait(&s_mutex) == 0 );
+			{
+				if( is_tobacco )
+				{
+					is_tobacco = 0;
+					assert( sem_post(&s_pusher_paper) == 0 );
+				}
+				else if( is_paper )
+				{
+					is_paper = 0;
+					assert( sem_post(&s_pusher_tobacco) == 0 );
+				}
+				else
+				{
+					is_match = 1;
+				}
+			}
+			assert( sem_post(&s_mutex) == 0 );
+			break;
 		case TOBACCO: // TOBACCO
+			printf("%s %d\n", __FUNCTION__, type);
 			assert( sem_wait(&s_tobacco) == 0 );
 
 			assert( sem_wait(&s_mutex) == 0 );
@@ -521,6 +578,7 @@ void *_5worker_pusher(void *arg)
 			assert( sem_post(&s_mutex) == 0 );
 			break;
 		case PAPER: // PAPER
+			printf("%s %d\n", __FUNCTION__, type);
 			assert( sem_wait(&s_paper) == 0 );
 
 			assert( sem_wait(&s_mutex) == 0 );
@@ -542,28 +600,6 @@ void *_5worker_pusher(void *arg)
 			}
 			assert( sem_post(&s_mutex) == 0 );
 			break;
-		case MATCHES: // MATCHES
-			assert( sem_wait(&s_matches) == 0 );
-
-			assert( sem_wait(&s_mutex) == 0 );
-			{
-				if( is_tobacco )
-				{
-					is_tobacco = 0;
-					assert( sem_post(&s_pusher_paper) == 0 );
-				}
-				else if( is_paper )
-				{
-					is_paper = 0;
-					assert( sem_post(&s_pusher_tobacco) == 0 );
-				}
-				else
-				{
-					is_match = 1;
-				}
-			}
-			assert( sem_post(&s_mutex) == 0 );
-			break;
 		default:
 			printf("%s\n", "Unsported ingredient");
 			pthread_exit((void*) 0);
@@ -573,41 +609,108 @@ void *_5worker_pusher(void *arg)
 	pthread_exit((void*) 0);
 }
 
+
+void *_5worker_pusher_a(void *arg){
+	while( 1 ){
+		assert( sem_wait(&s_tobacco) == 0 );
+		assert( sem_wait(&s_mutex) == 0 );
+		{
+			if( is_paper ) {
+				is_paper = 0;
+				assert( sem_post(&s_pusher_matches) == 0 );
+			}
+			else if( is_match ) {
+				is_match = 0;
+				assert( sem_post(&s_pusher_paper) == 0 );	
+			}
+			else {
+				is_tobacco = 1;
+			}
+		}
+		assert( sem_post(&s_mutex) == 0 );
+	}
+}
+void *_5worker_pusher_b(void *arg){
+	while( 1 ){
+		assert( sem_wait(&s_paper) == 0 );
+		assert( sem_wait(&s_mutex) == 0 );
+		{
+			if( is_match ) {
+				is_match = 0;
+				assert( sem_post(&s_pusher_tobacco) == 0 );
+			}
+			else if( is_tobacco ) {
+				is_tobacco = 0;
+				assert( sem_post(&s_pusher_matches) == 0 );
+			}
+			else {
+				is_paper = 1;
+			}
+		}
+		assert( sem_post(&s_mutex) == 0 );
+	}
+}
+void *_5worker_pusher_c(void *arg){
+	while( 1 ){
+		assert( sem_wait(&s_matches) == 0 );
+		assert( sem_wait(&s_mutex) == 0 );
+		{
+			if( is_tobacco ) {
+				is_tobacco = 0;
+				assert( sem_post(&s_pusher_paper) == 0 );
+			}
+			else if( is_paper ) {
+				is_paper = 0;
+				assert( sem_post(&s_pusher_tobacco) == 0 );
+			}
+			else {
+				is_match = 1;
+			}
+		}
+		assert( sem_post(&s_mutex) == 0 );
+	}
+}
+
 void *_5worker_smoker(void *arg)
 {
+	int type = *(int*)arg;
+	assert( sem_post(&s_signal) == 0 );
 	while( 1 )
 	{
-		switch( *(int*)arg )
+		switch( type )
 		{
 			case TOBACCO: // TOBACCO
 				// assert( sem_wait(&s_paper) == 0 );
 				// assert( sem_wait(&s_matches) == 0 );
 				// assert( sem_post(&s_agent) == 0 );
-
+				printf("%s %d\n", __FUNCTION__, type);
 				assert( sem_wait(&s_pusher_tobacco) == 0 );
-				make_cigarette(*(int*)arg);
+				make_cigarette();
 				assert( sem_post(&s_agent) == 0 );
-				smoke(*(int*)arg);
+				smoke();
+				sleep((rand() % 3) + 1);
 				break;
 			case PAPER: // PAPER
 				// assert( sem_wait(&s_tobacco) == 0 );
 				// assert( sem_wait(&s_matches) == 0 );
 				// assert( sem_post(&s_agent) == 0 );
-
+				printf("%s %d\n", __FUNCTION__, type);
 				assert( sem_wait(&s_pusher_paper) == 0 );
-				make_cigarette(*(int*)arg);
+				make_cigarette();
 				assert( sem_post(&s_agent) == 0 );
-				smoke(*(int*)arg);
+				smoke();
+				sleep((rand() % 3) + 1);
 				break;
 			case MATCHES: // MATCHES
 				// assert( sem_wait(&s_tobacco) == 0 );
 				// assert( sem_wait(&s_paper) == 0 );
 				// assert( sem_post(&s_agent) == 0 );
-
+				printf("%s %d\n", __FUNCTION__, type);
 				assert( sem_wait(&s_pusher_matches) == 0 );
-				make_cigarette(*(int*)arg);
+				make_cigarette();
 				assert( sem_post(&s_agent) == 0 );
-				smoke(*(int*)arg);
+				smoke();
+				sleep((rand() % 3) + 1);
 				break;
 			default:
 				printf("%s\n", "Unsported ingredient");
@@ -616,14 +719,44 @@ void *_5worker_smoker(void *arg)
 	}
 }
 
+void *_5worker_smoker_a(void *arg) {
+	while( 1 ) {
+		assert( sem_wait(&s_pusher_tobacco) == 0 );
+		make_cigarette();
+		assert( sem_post(&s_agent) == 0 );
+		smoke(*(int*)arg);
+		// wait a second, smoking is killing you, and don't throw your fucking cigarette on ground
+		sleep(rand()%3);
+	}
+}
+void *_5worker_smoker_b(void *arg) {
+	while( 1 ) {
+		assert( sem_wait(&s_pusher_paper) == 0 );
+		make_cigarette(*(int*)arg);
+		assert( sem_post(&s_agent) == 0 );
+		smoke(*(int*)arg);
+		// wait a second, smoking is killing you, and don't throw your fucking cigarette on ground
+		sleep(rand()%3);
+	}
+}
+void *_5worker_smoker_c(void *arg) {
+	while( 1 ) {
+		assert( sem_wait(&s_pusher_matches) == 0 );
+		make_cigarette(*(int*)arg);
+		assert( sem_post(&s_agent) == 0 );
+		smoke(*(int*)arg);
+		// wait a second, smoking is killing you, and don't throw your fucking cigarette on ground
+		sleep(rand()%3);
+	}
+}
+
 void cigarette_smokers(void)
 {
 	ENTER("");
 	int i;
-	pthread_t 	t_agent[SMOKERS_COUNT],
-		 		t_pusher[SMOKERS_COUNT],
-		 		t_smoker[SMOKERS_COUNT];
 
+	srand(time(NULL));
+	assert( sem_init(&s_signal	, 1, 0) == 0 );
 	assert( sem_init(&s_mutex	, 1, 1) == 0 );
 	assert( sem_init(&s_agent	, 1, 1) == 0 );
 
@@ -635,27 +768,41 @@ void cigarette_smokers(void)
 	assert( sem_init(&s_pusher_matches	, 1, 0) == 0 );
 	assert( sem_init(&s_pusher_paper	, 1, 0) == 0 );
 
-	// **********************************************************************//
-	// creating and running worker
-	for( i = 0; i < SMOKERS_COUNT; ++i )
-		assert( pthread_create(&t_agent[i], NULL, _5worker_agent, &i) == 0 );
+	//create 3 counts of threads: agents, pushers and smokers
+	for( i = 0; i < SMOKERS_COUNT * 3; ++i )
+	{
+		if( i > 5 )
+		{
+			assert( pthread_create(&t_pool[i], NULL, _5worker_smoker, (void*)&i) == 0 );
+			assert( sem_wait(&s_signal) == 0 );
+		}
+		else if( i > 2 )
+		{
+			assert( pthread_create(&t_pool[i], NULL, _5worker_pusher_b, (void*)&i) == 0 );
+			assert( sem_wait(&s_signal) == 0 );
+		}
+		else
+		{
+			assert( pthread_create(&t_pool[i], NULL, _5worker_agent, (void*)&i) == 0 );
+			assert( sem_wait(&s_signal) == 0 );
+		}
+	}
 
-	for( i = 0; i < SMOKERS_COUNT; ++i )
-		assert( pthread_create(&t_pusher[i], NULL, _5worker_pusher, &i) == 0 );
+	// assert( pthread_create(&t_pool[0], NULL, _5worker_agent_a, (void*)&i) == 0 );
+	// assert( pthread_create(&t_pool[1], NULL, _5worker_agent_b, (void*)&i) == 0 );
+	// assert( pthread_create(&t_pool[2], NULL, _5worker_agent_c, (void*)&i) == 0 );
 
-	for( i = 0; i < SMOKERS_COUNT; ++i )
-		assert( pthread_create(&t_smoker[i], NULL, _5worker_smoker, &i) == 0 );
+	// assert( pthread_create(&t_pool[3], NULL, _5worker_pusher_a, (void*)&i) == 0 );
+	// assert( pthread_create(&t_pool[4], NULL, _5worker_pusher_b, (void*)&i) == 0 );
+	// assert( pthread_create(&t_pool[5], NULL, _5worker_pusher_c, (void*)&i) == 0 );
 
-	// **********************************************************************//
-	// waiting for workers
-	for( i = 0; i < SMOKERS_COUNT; ++i )
-		assert( pthread_join(t_agent[i], NULL) == 0 );
-
-	for( i = 0; i < SMOKERS_COUNT; ++i )
-		assert( pthread_join(t_pusher[i], NULL) == 0 );
-
-	for( i = 0; i < SMOKERS_COUNT; ++i )
-		assert( pthread_join(t_smoker[i], NULL) == 0 );
+	// assert( pthread_create(&t_pool[6], NULL, _5worker_smoker_a, (void*)&i) == 0 );
+	// assert( pthread_create(&t_pool[7], NULL, _5worker_smoker_b, (void*)&i) == 0 );
+	// assert( pthread_create(&t_pool[8], NULL, _5worker_smoker_c, (void*)&i) == 0 );
+	
+	// waiting for agents, pushers and smokers
+	for( i = 0; i < SMOKERS_COUNT * 3; ++i )
+		assert( pthread_join(t_pool[i], NULL) == 0 );
 
 	// **********************************************************************//
 	// uninitializing created instances
