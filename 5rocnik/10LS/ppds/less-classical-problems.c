@@ -20,11 +20,16 @@
 
 #include <assert.h>
 #include <pthread.h>
+/*
+ *	int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);
+ */
 #include <semaphore.h>
 /*
-	int sem_init(sem_t *sem, int pshared, unsigned int value);
-	The pshared argument indicates whether this semaphore is to be shared between the threads of a process, or between processes.
-*/
+ *	int sem_init(sem_t *sem, int pshared, unsigned int value);
+ *	The pshared argument indicates whether this semaphore is to be shared between the threads of a process, or between processes.
+ *
+ *  int sem_destroy(sem_t *sem);
+ */
 #include <stdio.h>
 #include <stdlib.h> // rand
 #include <unistd.h> // sleep
@@ -229,7 +234,7 @@ void barbershop()
  */
 #define LIST_MAX_SIZE 100
 #define COUNT_OF_SEARCHERS 1
-#define COUNT_OF_INSERTERS 2
+#define COUNT_OF_INSERTERS 3
 #define COUNT_OF_DELETERS 1
 typedef struct list
 {
@@ -237,15 +242,17 @@ typedef struct list
 	struct list *next;
 } LIST;
 
-int items_in_list = 0,
-	actual_searcher_count = 0,
-	actual_inserter_count = 0;
+int items_in_list = 0;
+	// actual_searcher_count = 0,
+	// actual_inserter_count = 0;
 
 sem_t 	s_insert_mutex,
-		s_ls_mutex_search,
-		s_ls_mutex_insert,
+		// s_ls_mutex_search,
+		// s_ls_mutex_insert,
 		s_no_searcher,
 		s_no_inserter;
+LIGHT_SWITCH 	*ls_search,
+				*ls_insert;
 
 /* list functions START */
 void list_insert_front(LIST **lib, int value) // push_front
@@ -311,11 +318,15 @@ void list_delete(LIST **linked_list, int value)
 			*actual = *linked_list;
 	int index = 0;
 
+	if( *linked_list == NULL )
+		return;
+
 	//if( pom->value == value )
 	if( index == value)
 	{
 		*linked_list = pom->next;
 		free((void*) pom);
+		--items_in_list;
 	}
 	else
 	{
@@ -330,6 +341,7 @@ void list_delete(LIST **linked_list, int value)
 			{
 				actual->next = pom->next;
 				free((void*)pom);
+				--items_in_list;
 				return;
 			}
 		}
@@ -339,26 +351,25 @@ void list_delete(LIST **linked_list, int value)
 		{
 			actual->next = NULL;
 			free((void*) pom);
+			--items_in_list;
 		}
 	}
-
-	--items_in_list;
 }
 /* list functions END */
 
 void *_1worker_search(void *arg)
 {
-	ENTER("");
 	LIST *linked_list = (LIST*)arg;
 	while( 1 )
 	{
 		//*******************************************************************//
 		// light switch searchSwitch.wait(s_no_searcher)
-		assert( sem_wait(&s_ls_mutex_search) == 0 );
-		++actual_searcher_count;
-		if( actual_searcher_count == 1 )
-			assert( sem_wait(&s_no_searcher) == 0 );
-		assert( sem_post(&s_ls_mutex_search) == 0 );
+		ls_lock(ls_search, &s_no_searcher);
+		// assert( sem_wait(&s_ls_mutex_search) == 0 );
+		// ++actual_searcher_count;
+		// if( actual_searcher_count == 1 )
+		// 	assert( sem_wait(&s_no_searcher) == 0 );
+		// assert( sem_post(&s_ls_mutex_search) == 0 );
 		//*******************************************************************//
 		if( items_in_list == 0 )
 		{
@@ -368,16 +379,17 @@ void *_1worker_search(void *arg)
 		{
 			int value = (rand() % items_in_list);
 			printf("%s: searching %d in list\n", __FUNCTION__, value);
-			list_search(linked_list, value);
-			sleep(1);
+			//list_search(linked_list, value);
 		}
 		//*******************************************************************//
 		// light switch searchSwitch.post(s_no_searcher)
-		assert( sem_wait(&s_ls_mutex_search) == 0 );
-		--actual_searcher_count; // pocet citatelov
-		if( actual_searcher_count == 0 )
-			assert( sem_post(&s_no_searcher) == 0 );
-		assert( sem_post(&s_ls_mutex_search) == 0 );
+		ls_unlock(ls_search, &s_no_searcher);
+		// assert( sem_wait(&s_ls_mutex_search) == 0 );
+		// --actual_searcher_count; // pocet citatelov
+		// if( actual_searcher_count == 0 )
+		// 	assert( sem_post(&s_no_searcher) == 0 );
+		// assert( sem_post(&s_ls_mutex_search) == 0 );
+		sleep(rand() % 2);
 	}
 
 	pthread_exit((void*) 0);
@@ -385,17 +397,17 @@ void *_1worker_search(void *arg)
 
 void *_1worker_insert(void *arg)
 {
-	ENTER("");
 	LIST *linked_list = (LIST*)arg;
 	while( 1 )
 	{
 		//*******************************************************************//
 		// light switch insertSwitch.wait(s_no_inserter)
-		assert( sem_wait(&s_ls_mutex_insert) == 0 );
-		++actual_inserter_count;
-		if( actual_inserter_count == 1 )
-			assert( sem_wait(&s_no_inserter) == 0 );
-		assert( sem_post(&s_ls_mutex_insert) == 0 );
+		ls_lock(ls_insert, &s_no_inserter);
+		// assert( sem_wait(&s_ls_mutex_insert) == 0 );
+		// ++actual_inserter_count;
+		// if( actual_inserter_count == 1 )
+		// 	assert( sem_wait(&s_no_inserter) == 0 );
+		// assert( sem_post(&s_ls_mutex_insert) == 0 );
 		//*******************************************************************//
 		assert( sem_wait(&s_insert_mutex) == 0 );
 		if( items_in_list == LIST_MAX_SIZE )
@@ -405,20 +417,21 @@ void *_1worker_insert(void *arg)
 		else
 		{
 			int value = (rand() % 100);
-			printf("%s: inserting %d into list\n", __FUNCTION__, value);
-			list_insert_back(&linked_list, value);
+			printf("%s: inserting %d into list, size of list=%d\n", __FUNCTION__, value, items_in_list + 1);
+			//list_insert_back(&linked_list, value);
 			++items_in_list;
-			sleep(1);
 		}
 		assert( sem_post(&s_insert_mutex) == 0 );
 		//*******************************************************************//
 		// light switch insertSwitch.post(s_no_inserter)
-		assert( sem_wait(&s_ls_mutex_insert) == 0 );
-		--actual_inserter_count;
-		if( actual_inserter_count == 0 )
-			assert( sem_post(&s_no_inserter) == 0 );
-		assert( sem_post(&s_ls_mutex_insert) == 0 );
+		ls_unlock(ls_insert, &s_no_inserter);
+		// assert( sem_wait(&s_ls_mutex_insert) == 0 );
+		// --actual_inserter_count;
+		// if( actual_inserter_count == 0 )
+		// 	assert( sem_post(&s_no_inserter) == 0 );
+		// assert( sem_post(&s_ls_mutex_insert) == 0 );
 		//*******************************************************************//
+		sleep(rand() % 2);
 	}
 
 	pthread_exit((void*) 0);
@@ -426,7 +439,6 @@ void *_1worker_insert(void *arg)
 
 void *_1worker_delete(void *arg)
 {
-	ENTER("");
 	LIST *linked_list = (LIST*)arg;
 	while( 1 )
 	{
@@ -441,19 +453,19 @@ void *_1worker_delete(void *arg)
 		{
 			int value = (rand() % items_in_list);
 			printf("%s: deleting %d from list\n", __FUNCTION__, value);
-			list_delete(&linked_list, value);
+			//list_delete(&linked_list, value);
 			--items_in_list;
-			sleep(1);
 		}
 		//*******************************************************************//
 		assert( sem_post(&s_no_inserter) == 0 );
 		assert( sem_post(&s_no_searcher) == 0 );
+		sleep(rand() % 3);
 	}
 
 	pthread_exit((void*) 0);
 }
 
-void search_insert_delete(void)
+void search_insert_delete(void) // SID
 {
 	ENTER("");
 	LIST *linked_list = NULL;
@@ -462,10 +474,11 @@ void search_insert_delete(void)
 				t_inserter[COUNT_OF_INSERTERS],
 				t_deleter[COUNT_OF_DELETERS];
 
-	assert( sem_init(&s_mutex, 1, 1) == 0 );
 	assert( sem_init(&s_insert_mutex, 1, 1) == 0 );
-	assert( sem_init(&s_ls_mutex_search, 1, 1) == 0 );
-	assert( sem_init(&s_ls_mutex_insert, 1, 1) == 0 );
+	// assert( sem_init(&s_ls_mutex_search, 1, 1) == 0 );
+	// assert( sem_init(&s_ls_mutex_insert, 1, 1) == 0 );
+	ls_search = ls_init();
+	ls_insert = ls_init();
 	assert( sem_init(&s_no_searcher, 1, 1) == 0 );
 	assert( sem_init(&s_no_inserter, 1, 1) == 0 );
 
@@ -491,8 +504,10 @@ void search_insert_delete(void)
 
 	//***********************************************************************//
 	assert( sem_destroy(&s_insert_mutex) == 0 );
-	assert( sem_destroy(&s_ls_mutex_search) == 0 );
-	assert( sem_destroy(&s_ls_mutex_insert) == 0 );
+	// assert( sem_destroy(&s_ls_mutex_search) == 0 );
+	// assert( sem_destroy(&s_ls_mutex_insert) == 0 );
+	ls_free(ls_search);
+	ls_free(ls_insert);
 	assert( sem_destroy(&s_no_searcher) == 0 );
 	assert( sem_destroy(&s_no_inserter) == 0 );
 
@@ -652,15 +667,17 @@ void *_2worker_adult(void *arg) // nurse
 	int i;
 	while( 1 )
 	{
-		for( i = 0; i < COUNT_OF_CHILDREN; ++i )
+		for( i = 0; i < COUNT_OF_CHILDREN * COUNT_OF_ADULTS; ++i )
 		{
 			assert( sem_post(&s_multiplex) == 0 );
 		}
 
 		// CS
+		printf("%s: Adult %lu\n", __FUNCTION__, pthread_self());
+		sleep(rand() % 3);
 
 		assert( sem_wait(&s_mutex) == 0 );
-		for( i = 0; i < COUNT_OF_CHILDREN; ++i )
+		for( i = 0; i < COUNT_OF_CHILDREN * COUNT_OF_ADULTS; ++i )
 		{
 			assert( sem_wait(&s_multiplex) == 0 );
 		}
@@ -675,7 +692,8 @@ void *_2worker_child(void *arg)
 	while( 1 )
 	{
 		assert( sem_wait(&s_multiplex) == 0 );
-
+		printf("%s: Child %lu\n", __FUNCTION__, pthread_self());
+		sleep(rand() % 3);
 		assert( sem_post(&s_multiplex) == 0 );
 	}
 
@@ -691,12 +709,12 @@ void child_care(void)
 
 	if( COUNT_OF_ADULTS * MAX_COUNT_OF_CHILDREN_PER_ADULT < COUNT_OF_CHILDREN )
 	{
-		printf("%s: ERROR read the problem conditions\n", __FUNCTION__);
+		printf("%s: ERROR read the child care problem conditions\n", __FUNCTION__);
 		return;
 	}
 
 	assert( sem_init(&s_mutex, 1, 1) == 0 );
-	assert( sem_init(&s_multiplex, 1, COUNT_OF_ADULTS * MAX_COUNT_OF_CHILDREN_PER_ADULT) == 0 );
+	assert( sem_init(&s_multiplex, 1, 0) == 0 );
 
 	//***********************************************************************//
 	for( i = 0; i < COUNT_OF_ADULTS; ++i )
@@ -713,18 +731,14 @@ void child_care(void)
 		assert( pthread_join(t_child[i], NULL) == 0 );
 
 	//***********************************************************************//
-	assert( sem_destroy(&s_empty) == 0 );
-	assert( sem_destroy(&s_mutex_male) == 0 );
-	assert( sem_destroy(&s_mutex_female) == 0 );
-	assert( sem_destroy(&s_multiplex_male) == 0 );
-	assert( sem_destroy(&s_multiplex_female) == 0 );
-	assert( sem_destroy(&s_turnstile) == 0 );
+	assert( sem_destroy(&s_mutex) == 0 );
+	assert( sem_destroy(&s_multiplex) == 0 );
 }
 /* 7.2 The child care problem END */
 
 int main(int argc, char **argv)
 {
-	int u_choice = 4;
+	int u_choice = 5;
 
 	if( argc > 1 )
 		sscanf(argv[1], "%d", &u_choice);
@@ -746,6 +760,8 @@ int main(int argc, char **argv)
 		case 5:
 			child_care();
 			break;
+		case 6:
+			// http://ppds.useobjects.net/cv08/cv08_zadania.txt
 		default:
 			printf("Peu si?\n");
 	}

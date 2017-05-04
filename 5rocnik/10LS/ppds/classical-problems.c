@@ -3,7 +3,7 @@
  *
  * Some classical synchronizations problems from book Little Book of Semaphores by Allen B. Downey
  * compile:
- 	gcc -Wall -pthread -o classical classical-problems.c
+ 	gcc -Wall -pthread classical-problems.c lightswitch.c -o classical
  	./classical [number-of-problems-example]
 
 	case 1:
@@ -20,11 +20,16 @@
 
 #include <assert.h>
 #include <pthread.h>
+/*
+ *	int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);
+ */
 #include <semaphore.h>
 /*
-	int sem_init(sem_t *sem, int pshared, unsigned int value);
-	The pshared argument indicates whether this semaphore is to be shared between the threads of a process, or between processes.
-*/
+ *	int sem_init(sem_t *sem, int pshared, unsigned int value);
+ *	The pshared argument indicates whether this semaphore is to be shared between the threads of a process, or between processes.
+ *
+ *  int sem_destroy(sem_t *sem);
+ */	
 #include <stdio.h>
 #include <stdlib.h> // rand
 #include <unistd.h> // sleep

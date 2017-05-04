@@ -22,11 +22,16 @@
 
 #include <assert.h>
 #include <pthread.h>
+/*
+ *	int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);
+ */
 #include <semaphore.h>
 /*
-	int sem_init(sem_t *sem, int pshared, unsigned int value);
-	The pshared argument indicates whether this semaphore is to be shared between the threads of a process, or between processes.
-*/
+ *	int sem_init(sem_t *sem, int pshared, unsigned int value);
+ *	The pshared argument indicates whether this semaphore is to be shared between the threads of a process, or between processes.
+ *
+ *  int sem_destroy(sem_t *sem);
+ */
 #include <stdio.h>
 #include <stdlib.h> // rand
 #include <unistd.h> // sleep
@@ -45,7 +50,7 @@ sem_t s_semaphore;
 
 void *_1worker_a(void *arg)
 {
-	printf("_1worker_a: Thread %lu say Hello\n", pthread_self());
+	printf("%s: Thread %lu say Hello\n", __FUNCTION__, pthread_self());
 	assert( sem_post(&s_semaphore) == 0 );
 
 	pthread_exit((void*) 0);
@@ -54,7 +59,7 @@ void *_1worker_a(void *arg)
 void *_1worker_b(void *arg)
 {
 	assert( sem_wait(&s_semaphore) == 0 );
-	printf("_1worker_b: Thread %lu say Hello\n", pthread_self());
+	printf("%s: Thread %lu say Hello\n", __FUNCTION__, pthread_self());
 
 	pthread_exit((void*) 0);
 }
@@ -67,7 +72,7 @@ void signaling(void)
 
 	for( i = 0; i < threads_count; ++i )
 	{
-		if( i % 2 )			
+		if( i % 2 )
 			assert( pthread_create(&t_pool[i], NULL, _1worker_a, NULL) == 0 );
 		else
 			assert( pthread_create(&t_pool[i], NULL, _1worker_b, NULL) == 0 );
@@ -91,20 +96,20 @@ sem_t s_b_arrived;
 
 void *_3worker_a(void *arg)
 {
-	printf("_3worker_a: Thread %lu say Hello 1\n", pthread_self());
+	printf("%s: Thread %lu say Hello 1\n", __FUNCTION__, pthread_self());
 	assert( sem_post(&s_a_arrived) == 0 );
 	assert( sem_wait(&s_b_arrived) == 0 );
-	printf("_3worker_a: Thread %lu say Hello 2\n", pthread_self());
+	printf("%s: Thread %lu say Hello 2\n", __FUNCTION__, pthread_self());
 
 	pthread_exit((void*) 0);
 }
 
 void *_3worker_b(void *arg)
 {
-	printf("_3worker_b: Thread %lu say Hello 1\n", pthread_self());
+	printf("%s: Thread %lu say Hello 1\n", __FUNCTION__, pthread_self());
 	assert( sem_post(&s_b_arrived) == 0 );
 	assert( sem_wait(&s_a_arrived) == 0 );
-	printf("_3worker_b: Thread %lu say Hello 2\n", pthread_self());
+	printf("%s: Thread %lu say Hello 2\n", __FUNCTION__, pthread_self());
 
 	pthread_exit((void*) 0);
 }
@@ -145,7 +150,7 @@ void *_4worker(void *arg)
 	assert( sem_wait(&s_mutex) == 0 );
 	//CS critical section
 	counter++;
-	printf("_3worker_a: Thread %lu increments counter\n", pthread_self());
+	printf("%s: Thread %lu increments counter\n", __FUNCTION__, pthread_self());
 	assert( sem_post(&s_mutex) == 0 );
 
 	pthread_exit((void*) 0);
@@ -154,7 +159,7 @@ void *_4worker(void *arg)
 void mutex(void)
 {
 	int i,
-		threads_count = 2;
+		threads_count = POOL_SIZE;
 	assert( sem_init(&s_mutex, 1, 1) == 0 );
 
 	for( i = 0; i < threads_count; ++i )
@@ -180,14 +185,14 @@ void _5worker_cs(void)
 {
 	assert( sem_wait(&s_mutex) == 0 );
 	++counter;
-	printf("_5worker_cs: Thread %lu \e[32mJOINed\E[0m thread party, #thread=%d\n", pthread_self(), counter);
+	printf("%s: Thread %lu \e[32mJOINed\E[0m thread party, #thread=%d\n", __FUNCTION__, pthread_self(), counter);
 	assert( sem_post(&s_mutex) == 0 );
 
 	sleep(rand() % 2 + 1);
 
 	assert( sem_wait(&s_mutex) == 0 );
 	--counter;
-	printf("_5worker_cs: Thread %lu \E[31mLEAVEs\E[0m thread party, #thread=%d\n", pthread_self(), counter);
+	printf("%s: Thread %lu \E[31mLEAVEs\E[0m thread party, #thread=%d\n", __FUNCTION__, pthread_self(), counter);
 	assert( sem_post(&s_mutex) == 0 );
 }
 
@@ -204,10 +209,11 @@ void *_5worker(void *arg)
 void multiplex(void)
 {
 	int i,
-		threads_count = 10;
+		threads_count = POOL_SIZE,
+		multiplex_size = 5;
 
 	assert( sem_init(&s_mutex, 1, 1) == 0 );
-	assert( sem_init(&s_multiplex, 1, 5) == 0 );
+	assert( sem_init(&s_multiplex, 1, multiplex_size) == 0 );
 
 	for( i = 0; i < threads_count; ++i )
 		assert( pthread_create(&t_pool[i], NULL, _5worker, NULL) == 0 );
@@ -244,15 +250,16 @@ void *_6worker(void *arg)
 
 	// turnsitle - turniket moze prejst len jeden
 	assert( sem_wait(&s_barrier) == 0 );
-	printf("_6worker: Thread %lu statement 1\n", pthread_self());
+	printf("%s: Thread %lu statement 1\n", __FUNCTION__, pthread_self());
 	assert( sem_post(&s_barrier) == 0 );
 	/*
-	 * problem by bol ak by sme chceli kod pouzit v cykle, vlakna by sa uz necakali. Majme 2 vlakna: s_barier hodnota = 0 -1 0 1 0 1
+	 * problem by bol ak by sme chceli kod pouzit v cykle, vlakna by sa uz necakali.
+	 * Majme 2 vlakna: s_barier hodnota nazaciatku 0 -1 0 1 0 1 nakonci
 	 */
 
 	// CS critical section
 
-	printf("_6worker: Thread %lu statement 2\n", pthread_self());
+	printf("%s: Thread %lu statement 2\n", __FUNCTION__, pthread_self());
 
 	pthread_exit((void*) 0);
 }
@@ -275,7 +282,7 @@ void *_6worker_reusable(void *arg)
 
 		// turnsitle - turniket moze prejst len jeden
 		assert( sem_wait(&s_barrier) == 0 );
-		printf("_6worker_reusable: Thread %lu statement 1\n", pthread_self());
+		printf("%s: Thread %lu statement 1\n", __FUNCTION__, pthread_self());
 		assert( sem_post(&s_barrier) == 0 );
 
 		// CS critical section
@@ -296,7 +303,7 @@ void *_6worker_reusable(void *arg)
 		assert( sem_wait(&s_barrier_2) == 0 );
 		assert( sem_post(&s_barrier_2) == 0 );
 
-		printf("_6worker_reusable: Thread %lu statement 2\n", pthread_self());
+		printf("%s: Thread %lu statement 2\n", __FUNCTION__, pthread_self());
 	}
 
 	pthread_exit((void*) 0);
@@ -305,7 +312,7 @@ void *_6worker_reusable(void *arg)
 void barrier(void)
 {
 	int i,
-		threads_count = 10;
+		threads_count = POOL_SIZE;
 
 	assert( sem_init(&s_mutex, 1, 1) == 0 );
 	assert( sem_init(&s_barrier, 1, 0) == 0 );
@@ -313,6 +320,7 @@ void barrier(void)
 	if( 1 )
 	{
 		assert( sem_init(&s_barrier_2, 1, 1) == 0 );
+
 		for( i = 0; i < threads_count; ++i )
 			assert( pthread_create(&t_pool[i], NULL, _6worker_reusable, &threads_count) == 0 );
 	}
@@ -361,7 +369,7 @@ void *_8worker_a(void *arg)
 				assert( sem_wait(&s_b_arrived) == 0 );	
 			}
 
-			printf("_8worker_l: Thread %lu is going to dance\n", pthread_self());
+			printf("%s: Thread %lu is going to dance\n", __FUNCTION__, pthread_self());
 			dance();
 			
 			assert( sem_wait(&s_semaphore) == 0 );
@@ -390,7 +398,7 @@ void *_8worker_b(void *arg)
 				assert( sem_wait(&s_a_arrived) == 0 );	
 			}
 
-			printf("_8worker_f: Thread %lu is going to dance\n", pthread_self());
+			printf("%s: Thread %lu is going to dance\n", __FUNCTION__, pthread_self());
 			dance();
 			
 			assert( sem_post(&s_semaphore) == 0 );
@@ -403,7 +411,7 @@ void *_8worker_b(void *arg)
 void queue(void)
 {
 	int i,
-		threads_count = 10;
+		threads_count = POOL_SIZE;
 
 	assert( sem_init(&s_mutex, 1, 1) == 0 );
 	assert( sem_init(&s_semaphore, 1, 1) == 0 );
@@ -422,7 +430,9 @@ void queue(void)
 		assert( pthread_join(t_pool[i], NULL) == 0 );
 	
 	assert( sem_destroy(&s_mutex) == 0 );
-	assert( sem_destroy(&s_barrier) == 0 );
+	assert( sem_destroy(&s_semaphore) == 0 );
+	assert( sem_destroy(&s_a_arrived) == 0 );
+	assert( sem_destroy(&s_b_arrived) == 0 );
 }
 /* 3.8 Queue END */
 
