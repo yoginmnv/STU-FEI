@@ -6,7 +6,7 @@
  * was passed as argument and thereby is no need to pass it every time
  *
  * Compile:
- 		gcc -pthread lightswitch.c your-code.c -o your-code
+ 		gcc -pthread lightswitch.c your-code.c -o output
  */
 #include <assert.h>
 #include <limits.h>
@@ -19,7 +19,7 @@
 typedef struct
 {
 	sem_t 	s_mutex,
-			*s_semaphore;
+		*s_semaphore;
 	int counter;
 } LIGHT_SWITCH;
 

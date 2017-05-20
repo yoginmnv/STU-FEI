@@ -1,9 +1,9 @@
 /*
  * Maroš Polák, 4.5. 2017
  *
- * Implementation of barrier(synchronization object) in c
+ * Implementation of reusable barrier(synchronization object) in c
  * Compile:
- 		gcc -pthread barrier.c your-code.c -o your-code
+ 		gcc -pthread barrier.c your-code.c -o output
  */
 #include <assert.h>
 #include <pthread.h>
@@ -14,9 +14,9 @@
 typedef struct
 {
 	sem_t 	s_mutex,
-			s_turnstile1,
-			s_turnstile2;
-	int cnt,
+		s_turnstile1,
+		s_turnstile2;
+	int 	cnt,
 		N;
 } BARRIER;
 
