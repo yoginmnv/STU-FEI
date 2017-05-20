@@ -263,11 +263,7 @@ int get_chopsticks_on_left(int i)
 
 void get_chopsticks(int i)
 {
-#if LEFTIE == 0
-	assert( sem_wait(&s_footman) == 0 );
-	assert( sem_wait(&s_chopstick[get_chopsticks_on_right(i)]) == 0 );
-	assert( sem_wait(&s_chopstick[get_chopsticks_on_left(i)]) == 0 );	
-#else
+#if LEFTIE == 1
 	/* riesenie s jednym lavakom*/
 	if( i == 0 ) 
 	{
@@ -279,6 +275,10 @@ void get_chopsticks(int i)
 		assert( sem_wait(&s_chopstick[get_chopsticks_on_right(i)]) == 0 );
 		assert( sem_wait(&s_chopstick[get_chopsticks_on_left(i)]) == 0 );	
 	}
+#else
+	assert( sem_wait(&s_footman) == 0 );
+	assert( sem_wait(&s_chopstick[get_chopsticks_on_right(i)]) == 0 );
+	assert( sem_wait(&s_chopstick[get_chopsticks_on_left(i)]) == 0 );	
 #endif
 }
 
@@ -286,7 +286,7 @@ void put_chopsticks(int i)
 {
 	assert( sem_post(&s_chopstick[get_chopsticks_on_right(i)]) == 0 );
 	assert( sem_post(&s_chopstick[get_chopsticks_on_left(i)]) == 0 );
-#if LEFTIE == 0
+#if LEFTIE == 1
 	assert( sem_post(&s_footman) == 0 );
 #endif
 }
@@ -304,7 +304,6 @@ void *_4worker(void *arg)
 	pthread_exit((void*) 0);
 }
 
-#include <string.h>
 void dining_philosophers()
 {
 	int i;
@@ -778,7 +777,7 @@ void cigarette_smokers(void)
 		}
 		else if( i > 2 )
 		{
-			assert( pthread_create(&t_pool[i], NULL, _5worker_pusher_b, (void*)&i) == 0 );
+			assert( pthread_create(&t_pool[i], NULL, _5worker_pusher, (void*)&i) == 0 );
 			assert( sem_wait(&s_signal) == 0 );
 		}
 		else

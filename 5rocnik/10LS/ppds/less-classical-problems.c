@@ -7,15 +7,15 @@
  	./classical [number-of-problems-example]
 
 	case 1:
-		producer_consumer();
+		dining_savages();
 	case 2:
-		readers_writers();
+		barbershop();
 	case 3:
-		dining_philosophers();
+		search_insert_delete();
 	case 4:
-		dining_philosophers_tanenbaum();
+		unisex_bathroom();
 	case 5:
-		cigarette_smokers();
+		child_care();
  */
 
 #include <assert.h>

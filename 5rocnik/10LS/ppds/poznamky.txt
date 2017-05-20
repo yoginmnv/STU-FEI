@@ -8,21 +8,23 @@ An operation that cannot be interrupted is said to be atomic.
 
 
 
-serializacia(pomocou poslania spravy): udalost A sa musi vykonat pred udalostou B
+signalizacia(pomocou poslania spravy): udalost A sa musi vykonat pred udalostou B
 semafor = sem(0)
 
-thread A				thread B
-a1						semafor.wait()
+thread A			thread B
+a1				semafor.wait()
 semafor.signal()		b2
 
 
-vzajomne vylucenie(mutual exclusion - mutex): udalost A a B sa nesmu vykonat v tom istom case
+vzajomne vylucenie(mutual exclusion - mutex): udalost A a B sa nesmu vykonat v tom istom case, alebo len jeden proces/vlakno moze pristupit k premennej v danom case
+CS(critical section) - code that needs to be protected
 mut = sem(1)
 counter = 0
 
-thread A				thread B
-mut.wait()				mut.wait()
-counter = counter + 1	counter = counter + 1
+thread A			thread B
+mut.wait()			mut.wait()
+#CS				#CS
+counter = counter + 1		counter = counter + 1
 mut.signal()			mut.signal()
 
 
@@ -30,20 +32,20 @@ rande: udalost a1 sa musi vykonat pred udalostou b2 a udalost b1 sa ma vykonat p
 Aready = sem(0)
 Bready = sem(0)
 
-thread A				thread B
-a1						b1
+thread A			thread B
+a1				b1
 Aready.signal()			Bready.signal()
 Bready.wait()			Aready.wait()
-a2						b2
+a2				b2
 
 
 multiplex: viacero - N vlakien moze vstupit do kritickej oblasti - CS
 s = sem(N)
 
-thread A 				thread B 				thread C 			... 			thread N 		thread N + 1 		thread N + 2
-s.wait()				s.wait()				s.wait()			s.wait()		s.wait()		s.wait()			s.wait()
-CS()					CS()					CS()				CS()			CS()			CS()				CS()
-s.signal()				s.signal()				s.signal()			s.signal()		s.signal()		s.signal()			s.signal()
+thread A 		thread B 		... 			thread N	 	thread N + 1
+s.wait()		s.wait()		s.wait()		s.wait()		s.wait()
+CS			CS			CS			CS			CS
+s.signal()		s.signal()		s.signal()		s.signal()		s.signal()
 
 
 bariera: je rande s viacerymi > 2 vlaknami, poziadvka je aby ziadne vlakno nevykonalo CS kym vsetky vlakna nemali rande
@@ -55,9 +57,9 @@ mut    		= sem(1)
 turnstile 	= sem(0)
 count  		= 0 // pocet vlakien ktore uz mali rande
 
-thread A				thread B
+thread A			thread B
 // rande zaciatok
-a1						b1
+a1				b1
 Aready.signal()			Bready.signal()
 Bready.wait()			Aready.wait()
 // rande koniec
@@ -80,10 +82,10 @@ th1: sem = 1
 th2: sem = 0
 th2: sem = 1
 ////////////////////////////////////////
-thread A					thread B
+thread A				thread B
 while(True):
 	// rande zaciatok
-	a1						b1
+	a1				b1
 	Aready.signal()			Bready.signal()
 	Bready.wait()			Aready.wait()
 	// rande koniec
@@ -118,10 +120,10 @@ turnstile 	= sem(0)
 turnstile2 	= sem(1)
 count  		= 0 // pocet vlakien ktore uz mali rande
 
-thread A					thread B
+thread A				thread B
 while(True):
 	// rande zaciatok
-	a1						b1
+	a1				b1
 	Aready.signal()			Bready.signal()
 	Bready.wait()			Aready.wait()
 	// rande koniec
@@ -162,10 +164,10 @@ turnstile 	= sem(0)
 turnstile2 	= sem(0)
 count  		= 0 // pocet vlakien ktore uz mali rande
 
-thread A					thread B
+thread A				thread B
 while(True):
 	// rande zaciatok
-	a1						b1
+	a1				b1
 	Aready.signal()			Bready.signal()
 	Bready.wait()			Aready.wait()
 	// rande koniec
@@ -200,7 +202,7 @@ wQueue 	= sem(0) // follower
 mut 	= sem(1)
 rande	= sem(0)
 
-Thread man			Thread woman
+Thread man		Thread woman
 wQueue.signal()		mQueue.signal()
 mQueue.wait()		wQueue.wait()
 dance_floor()		dance_floor()

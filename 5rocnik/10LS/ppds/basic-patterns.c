@@ -43,7 +43,8 @@ int counter = 0;
 
 /* 3.1 Signaling START */
 /*
- * Vlakno sa nezacne vykonavat kym ho ine vlakno k tomu nevyzve
+ * Vlakno sa nezacne vykonavat kym ho k tomu nevyzve ine vlakno.
+ * V tomto pripade _1worker_b caka kym sa vykona _1worker_a
  */
 
 sem_t s_semaphore;
@@ -123,7 +124,7 @@ void rendezvous(void)
 
 	for( i = 0; i < threads_count; ++i )
 	{
-		if( i )			
+		if( i )
 			assert( pthread_create(&t_pool[i], NULL, _3worker_a, NULL) == 0 );
 		else
 			assert( pthread_create(&t_pool[i], NULL, _3worker_b, NULL) == 0 );
@@ -340,7 +341,7 @@ void barrier(void)
 
 /* 3.8 Queue START */
 /*
- * ? co k tomu povedat
+ * Pouzitie semaforu ako fronty
  */
 int count_of_a = 0, // leader
 	count_of_b = 0; // follower
