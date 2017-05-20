@@ -17,10 +17,11 @@ typedef struct
 		s_turnstile1,
 		s_turnstile2;
 	int 	cnt,
-		N;
+		N,
+		version;
 } BARRIER;
 
-BARRIER *barrier_init(int N);
+BARRIER *barrier_init(int N, int version);
 void barrier_phase1(BARRIER *b);
 void barrier_phase2(BARRIER *b);
 void barrier_destroy(BARRIER *b);
