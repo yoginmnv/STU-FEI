@@ -49,6 +49,8 @@ sem_t s_mutex;
  * Obmedzenia:
  *		1. divosi nemozu zobudit kuchara kym nie je kotol prazdny
  *		2. kuchar moze naplnit kotol len ak je prazdny
+ *
+ * vyuziva scoreboard a rande
  */
 #define M 10 // pocet porci misionara ktore sa zmestia do kotla
 #define SAVAGE_COUNT 20 // pocet divochov
@@ -136,6 +138,9 @@ void dining_savages()
 
 
 /* 5.2 The barbershop problem START */
+/*
+ * vyuziva scoreboard a 2xrande
+ */
 #define N 4 // cakaren s N stolickami
 #define CUSTOMERS_COUNT 8 // pocet zakaznikov ktory sa mozu dotrepat
 
@@ -164,7 +169,7 @@ void *_2worker_customer(void *arg)
 {
 	while( 1 )
 	{
-		// check if waiting room is not full
+		// scoreboard: check if waiting room is not full
 		assert( sem_wait(&s_mutex) == 0 );
 		if( counter == N )
 		{
@@ -184,7 +189,6 @@ void *_2worker_customer(void *arg)
 		// rendezvous
 		assert( sem_post(&s_customer_done) == 0 );
 		assert( sem_wait(&s_barber_done) == 0 );
-
 
 		// decrement count of customers
 		assert( sem_wait(&s_mutex) == 0 );
@@ -742,7 +746,7 @@ int main(int argc, char **argv)
 
 	if( argc > 1 )
 		sscanf(argv[1], "%d", &u_choice);
-	
+
 	switch( u_choice )
 	{
 		case 1:

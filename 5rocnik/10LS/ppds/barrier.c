@@ -4,10 +4,7 @@ BARRIER *barrier_init(int N, int version)
 {
 	printf("%s: of size=%d\n", __FUNCTION__, N);
 
-	if( !(version > 0 && version < 3) )
-	{
-		return NULL;
-	}
+	assert( (version > 0 && version < 3) == 1 );
 
 	BARRIER *b = (BARRIER*) malloc(1 * sizeof(BARRIER));
 	assert( b != NULL );
@@ -49,6 +46,24 @@ void barrier_phase1(BARRIER *b)
 	assert( sem_post(&b->s_turnstile1) == 0 );
 }
 
+void barrier_phase2(BARRIER *b)
+{
+	printf("%s\n", __FUNCTION__);
+
+	assert( sem_wait(&b->s_mutex) == 0 );
+	--b->cnt;
+	assert( b->cnt >= 0 );
+	if( b->cnt == 0 )
+	{
+		assert( sem_wait(&b->s_turnstile1) == 0 );
+		assert( sem_post(&b->s_turnstile2) == 0 );
+	}
+	assert( sem_post(&b->s_mutex) == 0 );
+
+	assert( sem_wait(&b->s_turnstile2) == 0 );
+	assert( sem_post(&b->s_turnstile2) == 0 );
+}
+
 void barrier_phase1_2(BARRIER *b)
 {
 	printf("%s\n", __FUNCTION__);
@@ -67,24 +82,6 @@ void barrier_phase1_2(BARRIER *b)
 	assert( sem_post(&b->s_mutex) == 0 );
 
 	assert( sem_wait(&b->s_turnstile1) == 0 );
-}
-
-void barrier_phase2(BARRIER *b)
-{
-	printf("%s\n", __FUNCTION__);
-
-	assert( sem_wait(&b->s_mutex) == 0 );
-	--b->cnt;
-	assert( b->cnt >= 0 );
-	if( b->cnt == 0 )
-	{
-		assert( sem_wait(&b->s_turnstile1) == 0 );
-		assert( sem_post(&b->s_turnstile2) == 0 );
-	}
-	assert( sem_post(&b->s_mutex) == 0 );
-
-	assert( sem_wait(&b->s_turnstile2) == 0 );
-	assert( sem_post(&b->s_turnstile2) == 0 );
 }
 
 void barrier_phase2_2(BARRIER *b)
@@ -145,7 +142,7 @@ void barrier_destroy(BARRIER *b)
 // int main(int argc, char**argv)
 // {
 // 	int version = 1;
-// 	if( argc > 0 )
+// 	if( argc > 1 )
 // 		sscanf(argv[1], "%d", &version);
 
 // 	BARRIER *b_example;
